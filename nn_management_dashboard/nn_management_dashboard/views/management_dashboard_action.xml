@@ -1,0 +1,39 @@
+<odoo>
+  <data>
+    <record id="action_nn_management_dashboard" model="ir.actions.client">
+        <field name="name">Management Dashboard</field>
+        <field name="tag">nn_management_dashboard</field>
+    </record>
+
+    <record id="view_nmd_move_line_list" model="ir.ui.view">
+        <field name="name">nn.management.dashboard.move.line.list</field>
+        <field name="model">account.move.line</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <tree create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="move_id"/>
+                <field name="account_id"/>
+                <field name="partner_id"/>
+                <field name="property_id"/>
+                <field name="subproperty_id"/>
+                <field name="name"/>
+                <field name="debit" sum="Debit"/>
+                <field name="credit" sum="Credit"/>
+                <field name="balance" sum="Balance"/>
+                <field name="company_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <menuitem id="menu_insights_root"
+          name="Insights"
+          web_icon="nn_management_dashboard,static/description/icon.png" />
+
+    <menuitem id="menu_nn_management_dashboard"
+          name="Management Dashboard"
+          parent="menu_insights_root"
+          action="action_nn_management_dashboard"
+          groups="group_management_dashboard_user" />
+  </data>
+</odoo>

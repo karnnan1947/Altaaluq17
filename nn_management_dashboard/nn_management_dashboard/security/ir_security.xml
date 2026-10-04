@@ -1,0 +1,20 @@
+<odoo>
+  <data noupdate="0">
+
+        <!-- Settings > Users shows one "Insights" section; each dashboard family gets its
+             own checkbox under it. Only Management Dashboard exists today. -->
+        <record id="module_category_insights" model="ir.module.category">
+            <field name="name">Insights</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="group_management_dashboard_user" model="res.groups">
+            <field name="name">Management Dashboard</field>
+            <field name="category_id" ref="module_category_insights"/>
+        </record>
+
+        <!-- Redraw the user form so Insights shows as checkboxes (see res_groups.py). -->
+        <function model="res.groups" name="_update_user_groups_view"/>
+
+  </data>
+</odoo>

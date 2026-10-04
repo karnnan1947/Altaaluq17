@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nn_management_dashboard,nn_management_dashboard.nn_management_dashboard,model_nn_management_dashboard,group_management_dashboard_user,1,1,1,1

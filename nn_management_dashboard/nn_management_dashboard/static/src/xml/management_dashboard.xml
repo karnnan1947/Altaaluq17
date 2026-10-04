@@ -1,0 +1,179 @@
+<templates xml:space="preserve">
+<t t-name="nn_management_dashboard.Template" owl="1">
+  <div class="nmd_root" t-ref="root" t-att-class="{nmd_dark: isDark}">
+    <div class="nmd_chrome">
+      <div class="nmd_in">
+        <div class="nmd_bar1">
+          <div class="nmd_brand">
+            <h1>Management Dashboard</h1>
+          </div>
+          <div class="nmd_tools">
+            <span class="nmd_stamp" t-if="state.asOf" t-esc="'As of ' + state.asOf"/>
+            <button type="button" class="nmd_btn" t-att-class="state.showLimits ? 'on' : ''"
+                    t-on-click="() => this.toggleLimits()">Limits</button>
+          </div>
+        </div>
+        <div class="nmd_frow">
+          <div class="nmd_seg">
+            <t t-foreach="presets" t-as="p" t-key="p.id">
+              <button type="button" t-att-aria-pressed="state.filter.id === p.id ? 'true' : 'false'"
+                      t-on-click="() => this.setPreset(p.id)" t-esc="p.label"/>
+            </t>
+          </div>
+          <div class="nmd_cust">
+            <span>from</span><input type="date" t-ref="dFrom"/>
+            <span>to</span><input type="date" t-ref="dTo"/>
+            <button type="button" class="nmd_btn" t-on-click="() => this.applyCustomRange()">Apply</button>
+          </div>
+          <div class="nmd_fnote" t-esc="'Window: ' + state.filter.label"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="nmd_wrap">
+      <section class="nmd_card" t-if="state.showLegend">
+        <h2>How to read this board</h2>
+        <div class="nmd_hg">
+          <div class="nmd_hc"><div class="nmd_hh"><span class="nmd_prov exact">exact</span><span class="nmd_ht">Recomputed</span></div>
+            <p>The measure has record-level dates, so the window figure is calculated from the underlying rows.</p></div>
+          <div class="nmd_hc"><div class="nmd_hh"><span class="nmd_prov snap">snapshot</span><span class="nmd_ht">Point in time</span></div>
+            <p>No time dimension &#8212; the window does not change it, and that is correct rather than missing.</p></div>
+          <div class="nmd_hc"><div class="nmd_hh"><span class="nmd_chip crit">Breach</span></div>
+            <p>Past the red limit set under Limits. <span class="nmd_chip warn">Watch</span> is past amber, <span class="nmd_chip good">Clear</span> is inside both.</p></div>
+          <div class="nmd_hc"><div class="nmd_hh"><span class="nmd_ht">Window direction</span></div>
+            <p>Arrears, cheques, vacancy, cost and unpaid dues look <b>backwards</b>. Lease expiry looks <b>forwards</b>.</p></div>
+          <div class="nmd_hc"><div class="nmd_hh"><span class="nmd_ht">Status colour is fixed</span></div>
+            <p>Green, amber and red carry meaning and never change with the data.</p></div>
+        </div>
+      </section>
+
+      <section class="nmd_card" t-if="state.showLimits">
+        <h2>Limits &amp; colour bands</h2>
+        <p class="nmd_lede">Set where amber starts and where red starts for each measure, and whether high or low is the bad direction.</p>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Measure</th><th>Bad direction</th><th class="n">Amber from</th><th class="n">Red from</th></tr></thead>
+            <tbody>
+              <t t-foreach="measureOrder" t-as="key" t-key="key">
+                <tr t-if="state.thresholdDraft[key]">
+                  <td><b t-esc="(state.measures.find(m => m.key === key) || {}).name || key"/></td>
+                  <td>
+                    <select t-on-change="(ev) => this.setThresholdField(key, 'dir', ev.target.value)">
+                      <option value="high" t-att-selected="state.thresholdDraft[key].dir === 'high'">High is bad</option>
+                      <option value="low" t-att-selected="state.thresholdDraft[key].dir === 'low'">Low is bad</option>
+                    </select>
+                  </td>
+                  <td class="n"><input type="number" t-att-value="state.thresholdDraft[key].amber"
+                        t-on-change="(ev) => this.setThresholdField(key, 'amber', ev.target.value)"/></td>
+                  <td class="n"><input type="number" t-att-value="state.thresholdDraft[key].red"
+                        t-on-change="(ev) => this.setThresholdField(key, 'red', ev.target.value)"/></td>
+                </tr>
+              </t>
+            </tbody>
+          </table>
+        </div>
+        <div class="nmd_cfoot">
+          <button type="button" class="nmd_btn" t-on-click="() => this.applyThresholds()">Apply</button>
+          <button type="button" class="nmd_btn" t-on-click="() => this.resetThresholds()">Reset defaults</button>
+        </div>
+      </section>
+
+      <div t-if="state.loading" class="nmd_loading">Loading&#8230;</div>
+
+      <div t-if="!state.loading" class="nmd_stage">
+        <div class="nmd_l2">
+          <nav class="nmd_frame nmd_rail">
+            <t t-foreach="state.measures" t-as="m" t-key="m.key">
+              <button type="button" class="nmd_cell nmd_rl" t-att-aria-current="state.selectedKey === m.key ? 'true' : 'false'"
+                      t-on-click="() => this.select(m.key)">
+                <span t-attf-class="nmd_dot {{ m.status }}"/>
+                <span class="nmd_rlmid">
+                  <span class="nmd_nm" t-esc="m.name"/>
+                  <span class="nmd_sub" t-esc="m.idx + ' &#183; ' + m.unit"/>
+                </span>
+                <span class="nmd_no" t-esc="fmt(m.value)"/>
+              </button>
+            </t>
+          </nav>
+
+          <section class="nmd_pane" t-if="selectedMeasure" t-ref="pane">
+            <div class="nmd_dhead">
+              <div>
+                <h2 t-esc="selectedMeasure.idx + ' &#183; ' + selectedMeasure.name"/>
+              </div>
+              <div class="nmd_dact">
+                <span t-attf-class="nmd_chip {{ selectedMeasure.status }}" t-esc="statusLabel(selectedMeasure.status)"/>
+                <span t-attf-class="nmd_prov {{ selectedMeasure.prov }}" t-esc="provLabel(selectedMeasure.prov)"/>
+                <button type="button" class="nmd_btn" t-on-click="() => this.selectAll()">Select all</button>
+                <button type="button" class="nmd_btn" t-on-click="() => this.copyText()" t-esc="state.copyLabel"/>
+                <button type="button" class="nmd_lnk" t-on-click="() => this.open(selectedMeasure.action)">
+                  <t t-esc="selectedMeasure.action &amp;&amp; selectedMeasure.action.name"/>
+                  <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M4.5 2h5.5v5.5M10 2 3 9M8 10H2V4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <button type="button" class="nmd_lnk" t-if="selectedMeasure.action2" t-on-click="() => this.open(selectedMeasure.action2)">
+                  <t t-esc="selectedMeasure.action2.name"/>
+                  <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M4.5 2h5.5v5.5M10 2 3 9M8 10H2V4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="nmd_phero">
+              <span class="nmd_bigno" t-esc="fmt(selectedMeasure.value)"/>
+              <span class="nmd_un" t-esc="selectedMeasure.unit"/>
+            </div>
+            <div class="nmd_mval" t-esc="selectedMeasure.vtxt"/>
+
+            <div class="nmd_subs" t-if="selectedDetail">
+              <t t-foreach="selectedDetail.subs" t-as="s" t-key="s.k">
+                <div class="nmd_sb">
+                  <div class="nmd_k" t-esc="s.k"/>
+                  <div class="nmd_v" t-esc="s.v"/>
+                  <div class="nmd_x" t-esc="s.x"/>
+                </div>
+              </t>
+            </div>
+
+            <t t-foreach="(selectedDetail &amp;&amp; selectedDetail.bars) || []" t-as="bar" t-key="bar.title">
+              <div class="nmd_sech"><span class="nmd_t" t-esc="bar.title"/><span class="nmd_u" t-esc="bar.unit"/></div>
+              <div class="nmd_bars">
+                <t t-foreach="bar.rows" t-as="row" t-key="row_index">
+                  <div class="nmd_bar">
+                    <span class="nmd_b1" t-esc="row[0]"/>
+                    <span class="nmd_tr"><span class="nmd_fl" t-attf-style="width:{{ barWidth(bar.rows, row_index, 2) }}%"/></span>
+                    <span class="nmd_b3" t-esc="fmt(row[2])"/>
+                    <span class="nmd_b4" t-if="!bar.single" t-esc="fmt(row[1])"/>
+                  </div>
+                </t>
+              </div>
+            </t>
+
+            <t t-foreach="(selectedDetail &amp;&amp; selectedDetail.tables) || []" t-as="tbl" t-key="tbl.title">
+              <div class="nmd_sech"><span class="nmd_t" t-esc="tbl.title"/></div>
+              <div class="nmd_tw">
+                <table>
+                  <thead><tr><t t-foreach="tbl.cols" t-as="c" t-key="c"><th t-esc="c"/></t></tr></thead>
+                  <tbody>
+                    <t t-foreach="tbl.rows" t-as="row" t-key="row_index">
+                      <tr><t t-foreach="row" t-as="cell" t-key="cell_index"><td t-esc="cell"/></t></tr>
+                    </t>
+                  </tbody>
+                </table>
+              </div>
+            </t>
+
+            <div class="nmd_cav" t-if="selectedDetail">
+              <h4 t-esc="selectedDetail.cav[0]"/>
+              <t t-foreach="selectedDetail.cav.slice(1)" t-as="note" t-key="note_index">
+                <p t-esc="note"/>
+              </t>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</t>
+</templates>
